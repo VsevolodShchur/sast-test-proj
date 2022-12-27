@@ -37,7 +37,8 @@ func newGetItemHandler(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		itemId := chi.URLParam(r, "id")
 
-		rows, err := db.Query("SELECT * FROM items WHERE id = " + itemId)
+		queryArgs := map[string]interface{}{"id": itemId}
+		rows, err := db.NamedQuery("SELECT * FROM items WHERE id = :id", queryArgs)
 		if err != nil {
 			returnError(w, http.StatusInternalServerError, err)
 			return
