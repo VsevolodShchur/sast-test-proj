@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/go-chi/chi"
 	"github.com/jmoiron/sqlx"
@@ -18,9 +17,9 @@ type item struct {
 	Title string `db:"title" json:"title"`
 }
 
-func returnItem(w http.ResponseWriter, i item) {
+func returnItems(w http.ResponseWriter, items []item) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(&i)
+	json.NewEncoder(w).Encode(&items)
 }
 
 type errorResponse struct {
@@ -37,11 +36,6 @@ func returnError(w http.ResponseWriter, statusCode int, err error) {
 func newGetItemHandler(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		itemId := chi.URLParam(r, "id")
-		_, err := strconv.ParseInt(itemId, 10, 64)
-		if err != nil {
-			returnError(w, http.StatusBadRequest, fmt.Errorf("id param is not int"))
-			return
-		}
 
 		rows, err := db.Query("SELECT * FROM items WHERE id = " + itemId)
 		if err != nil {
@@ -49,19 +43,19 @@ func newGetItemHandler(db *sqlx.DB) http.HandlerFunc {
 			return
 		}
 
-		if !rows.Next() {
-			returnError(w, http.StatusNotFound, fmt.Errorf("item with id %s not found", itemId))
-			return
+		items := make([]item, 0)
+		for rows.Next() {
+			var id int
+			var title string
+			err = rows.Scan(&id, &title)
+			if err != nil {
+				returnError(w, http.StatusInternalServerError, err)
+				return
+			}
+			items = append(items, item{ID: id, Title: title})
 		}
 
-		var id int
-		var title string
-		err = rows.Scan(&id, &title)
-		if err != nil {
-			returnError(w, http.StatusInternalServerError, err)
-			return
-		}
-		returnItem(w, item{ID: id, Title: title})
+		returnItems(w, items)
 	}
 }
 
