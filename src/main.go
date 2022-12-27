@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/go-chi/chi"
 	"github.com/jmoiron/sqlx"
@@ -37,13 +36,8 @@ func returnError(w http.ResponseWriter, statusCode int, err error) {
 func newGetItemHandler(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		itemId := chi.URLParam(r, "id")
-		_, err := strconv.ParseInt(itemId, 10, 64)
-		if err != nil {
-			returnError(w, http.StatusBadRequest, fmt.Errorf("id param is not int"))
-			return
-		}
 
-		rows, err := db.Query("SELECT * FROM items WHERE id = " + itemId)
+		rows, err := db.Query("SELECT * FROM items WHERE id, = " + itemId)
 		if err != nil {
 			returnError(w, http.StatusInternalServerError, err)
 			return
